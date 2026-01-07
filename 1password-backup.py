@@ -105,6 +105,18 @@ def download_category(args, category, skip_vaults, vault_names):
                     ('op', category, 'get', uuid, '--vault', vault),
                     stdout=subprocess.PIPE, check=True)
                 f.write(result.stdout)
+            # Only the detailed item we just downloaded has files listed in it.
+            i = json.load(open(outfile))
+            for file in i.get('files', []):
+                file_id = file['id']
+                file_name = file['name'].replace('/', '_')
+                file_path = f'{item_outdir}/{file_name}'
+                if os.path.exists(file_path):
+                    file_path = f'{item_outdir}/{file_name} {file_id}'
+                subprocess.run(
+                    ('op', 'read', f'op://{vault}/{uuid}/{file_id}',
+                     '--out-file', file_path), check=True,
+                    capture_output=True)
             item_count += 1
             if args.verbose:
                 print(f'Downloaded {item_count}/{item_total_count} '
@@ -112,8 +124,7 @@ def download_category(args, category, skip_vaults, vault_names):
 
 
 def download_all(args, skip_vaults, vault_names):
-    for category in ('item', 'document'):
-        download_category(args, category, skip_vaults, vault_names)
+    download_category(args, 'item', skip_vaults, vault_names)
 
 
 def main():
